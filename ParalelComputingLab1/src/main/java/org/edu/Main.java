@@ -59,6 +59,7 @@ public class Main {
 
                 for (long j = current; j <= end; j += 2) {
                     if (isPrime(j) && isPrime(j + 2)) {
+                        //System.out.println(localCount+1);
                         localCount++;
                     }
                 }
@@ -75,22 +76,72 @@ public class Main {
     public static void main(String[] args) {
         String filename = "input_data.txt";
         try {
-            /*System.out.print("Введіть n (або 0 для генерації випадкового): ");
             Scanner sc = new Scanner(System.in);
-            long n = sc.nextLong();*/
-            Scanner scanFile = new Scanner(new File(filename));
+            int choice;
+            long n = 0;
+            boolean running = true;
 
-            long n = scanFile.nextLong();
-            scanFile.close();
+            while (running) {
+                System.out.println("1 - Ввести число вручну");
+                System.out.println("2 - Зчитати число з файлу");
+                System.out.println("3 - Продовжити");
+                System.out.print("Ваш вибір: ");
+
+                if (!sc.hasNextInt()) {
+                    System.out.println("Введіть число!");
+                    sc.next();
+                    continue;
+                }
+
+                choice = sc.nextInt();
+
+                switch (choice) {
+                    case 1:
+                        System.out.print("Введіть n (або 0 для генерації випадкового): ");
+
+                        if (!sc.hasNextLong()) {
+                            System.out.println("Помилка! Введіть число.");
+                            sc.next();
+                            break;
+                        }
+
+                        n = sc.nextLong();
+                        System.out.println("n = " + n);
+                        // Збереження у файл
+                        PrintWriter writer = new PrintWriter(new File(filename));
+                        writer.println(n);
+                        writer.close();
+                        running = false;
+                        break;
+
+                    case 2:
+                        try (Scanner scanFile = new Scanner(new File(filename))) {
+                            if (scanFile.hasNextLong()) {
+                                n = scanFile.nextLong();
+                                System.out.println("Зчитано з файлу: n = " + n);
+                            } else {
+                                System.out.println("Файл не містить числа!");
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Помилка читання файлу: " + e.getMessage());
+                        }
+                        running = false;
+                        break;
+
+                    case 3:
+                        running = false; // вихід з циклу
+                        break;
+
+                    default:
+                        System.out.println("Невірний вибір!");
+                }
+            }
+            sc.close();
+
             if (n == 0) {
                 n = 1_000_000 + new Random().nextInt(9_000_000);
                 System.out.println("Згенеровано n = " + n);
             }
-
-            // Збереження у файл
-            PrintWriter writer = new PrintWriter(new File(filename));
-            writer.println(n);
-            writer.close();
 
             // Зчитування з файлу
             Scanner fileScanner = new Scanner(new File(filename));
@@ -105,24 +156,33 @@ public class Main {
             long endSeq = System.currentTimeMillis();
 
             // Паралельний замір
-            int threads = Runtime.getRuntime().availableProcessors();
+            int threads; //= Runtime.getRuntime().availableProcessors();
             long startPar = System.currentTimeMillis();
-            int resultPar = countTwinPrimesParallel(inputN, threads);
-            long endPar = System.currentTimeMillis();
+            int resultPar = 0;
+            long endPar;// = System.currentTimeMillis();
+            for(threads = 1; threads<Runtime.getRuntime().availableProcessors(); threads++){
+                startPar = System.currentTimeMillis();
+                System.out.println("\nІтерація " + threads + " Кількість тредів = " + threads+"\n" );
+                resultPar = countTwinPrimesParallel(inputN, threads);
+                endPar = System.currentTimeMillis();
+                System.out.println("Час " + (double) (endPar - startPar) / 1000);
+            }
+            endPar = System.currentTimeMillis();
 
-            //Виведення результатів
             String output = String.format(
                     "Результат послідовно: %d, результат паралельно %d пар\n" +
                             "Час (послідовно): %.2f с\n" +
                             "Час (паралельно, %d потоків): %.2f с\n" +
                             "Прискорення: %.2fx",
-                    resultSeq,resultPar, (double)(endSeq - startSeq)/1000, threads, (double)(endPar - startPar)/1000,
-                    (double)(endSeq - startSeq) / (endPar - startPar)
+                    resultSeq, resultPar,
+                    (double) (endSeq - startSeq) / 1000,
+                    threads,
+                    (double) (endPar - startPar) / 1000,
+                    (double) (endSeq - startSeq) / (endPar - startPar)
             );
 
             System.out.println(output);
 
-            // Збереження результату у файл
             PrintWriter resWriter = new PrintWriter(new File("result.txt"));
             resWriter.println(output);
             resWriter.close();
@@ -131,4 +191,4 @@ public class Main {
             e.printStackTrace();
         }
     }
-}
+    }
