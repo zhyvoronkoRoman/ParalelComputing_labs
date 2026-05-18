@@ -1,0 +1,80 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: lb://auth-service
+              predicates:
+                - Path=/auth/**
+
+            - id: wallet-service
+              uri: lb://wallet-service
+              predicates:
+                - Path=/api/wallet/**, /api/portfolio/**
+              filters:
+                - AuthenticationFilter
+
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
+              filters:
+                - AuthenticationFilter
+
+            - id: price-service
+              uri: lb://price-service
+              predicates:
+                - Path=/api/prices/**
+
+            - id: auth-docs
+              uri: lb://auth-service
+              predicates:
+                - Path=/docs/auth
+              filters:
+                - RewritePath=/docs/auth, /v3/api-docs
+
+            - id: wallet-docs
+              uri: lb://wallet-service
+              predicates:
+                - Path=/docs/wallet
+              filters:
+                - RewritePath=/docs/wallet, /v3/api-docs
+
+            - id: order-docs
+              uri: lb://order-service
+              predicates:
+                - Path=/docs/order
+              filters:
+                - RewritePath=/docs/order, /v3/api-docs
+
+            - id: price-docs
+              uri: lb://price-service
+              predicates:
+                - Path=/docs/price
+              filters:
+                - RewritePath=/docs/price, /v3/api-docs
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Auth API
+        url: /docs/auth
+      - name: Wallet API
+        url: /docs/wallet
+      - name: Order API
+        url: /docs/order
+      - name: Price API
+        url: /docs/price
