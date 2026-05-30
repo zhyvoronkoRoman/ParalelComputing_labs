@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-deployment
+  labels:
+    app: wallet-service
+spec:
+  replicas: 2 # Виконуємо вимогу лаби: мінімум 2 репліки одного сервісу
+  selector:
+    matchLabels:
+      app: wallet-service
+  template:
+    metadata:
+      labels:
+        app: wallet-service
+    spec:
+      containers:
+        - name: wallet-service
+          # ВАЖЛИВО: Тут має бути ім'я образу, який ти зібрав з Dockerfile (наприклад, твій_логін/wallet-service:latest)
+          image: crypto-trading/wallet-service:latest
+          imagePullPolicy: IfNotPresent # Щоб Minikube шукав образ локально
+          ports:
+            - containerPort: 8082 # Порт, на якому працює твій Spring Boot додаток (перевір у application.properties)
+          env:
+            # Перевизначаємо підключення до БД. Замість localhost вказуємо ім'я сервісу з Кроку 1!
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-service:5432/cryptodb
+            - name: SPRING_DATASOURCE_USERNAME
+              value: crypto_user
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: crypto_pass
+            # Вказуємо адресу Eureka Server (який ми розгорнемо пізніше)
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://discovery-service:8761/eureka/
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-service
+spec:
+  selector:
+    app: wallet-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP

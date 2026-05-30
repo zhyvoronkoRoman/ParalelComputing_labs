@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  labels:
+    app: crypto-postgres
+spec:
+  replicas: 1 # Для реляційних БД у базовому варіанті завжди 1 репліка, щоб уникнути розсинхронізації даних без кластеризації
+  selector:
+    matchLabels:
+      app: crypto-postgres
+  template:
+    metadata:
+      labels:
+        app: crypto-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: cryptodb
+            - name: POSTGRES_USER
+              value: crypto_user
+            - name: POSTGRES_PASSWORD
+              value: crypto_pass
+          resources: # Обов'язкова практика комерційної розробки — ліміти ресурсів
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+spec:
+  selector:
+    app: crypto-postgres # Сервіс шукатиме Pod-и саме з цією міткою
+  ports:
+    - protocol: TCP
+      port: 5432 # Порт, за яким сервіс буде доступний всередині кластера
+      targetPort: 5432 # Внутрішній порт контейнера у Pod-і
+  type: ClusterIP # Внутрішній IP. База даних не повинна бути доступна ззовні кластера

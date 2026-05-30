@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: price-deployment
+  labels:
+    app: price-service
+spec:
+  replicas: 2 # Виконуємо вимогу лаби: мінімум 2 репліки одного сервісу
+  selector:
+    matchLabels:
+      app: price-service
+  template:
+    metadata:
+      labels:
+        app: price-service
+    spec:
+      containers:
+        - name: price-service
+          # ВАЖЛИВО: Тут має бути ім'я образу, який ти зібрав з Dockerfile (наприклад, твій_логін/price-service:latest)
+          image: crypto-trading/price-service:latest
+          imagePullPolicy: IfNotPresent # Щоб Minikube шукав образ локально
+          ports:
+            - containerPort: 8084 # Порт, на якому працює твій Spring Boot додаток (перевір у application.properties)
+          env:
+            # Вказуємо підключення до Redis-сервісу з Кроку 1
+            - name: SPRING_DATA_REDIS_HOST
+              value: redis-service
+            - name: SPRING_DATA_REDIS_PORT
+              value: "6379"
+            # Eureka залишається
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://discovery-service:8761/eureka/
+            - name: EUREKA_INSTANCE_PREFER_IP_ADDRESS
+              value: "true"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: price-service
+spec:
+  selector:
+    app: price-service
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+  type: ClusterIP
